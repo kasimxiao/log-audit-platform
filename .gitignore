@@ -1,0 +1,17 @@
+# 依赖与构建产物
+.venv/
+node_modules/
+cdk.out/
+backend/build*/
+# CDK 查找缓存（含账号 ID、VPC/子网 ID，本地生成）
+infra/cdk.context.json
+__pycache__/
+*.pyc
+# 生成文件（部署时由 bootstrap.py 写入）
+web/config.js
+# 可重新生成的数据（scripts/gen_synthetic.py）
+data/synthetic/
+# 第三方数据库（DB-IP Lite，按 README 下载）
+data/geo/*.mmdb
+.DS_Store
+*.log

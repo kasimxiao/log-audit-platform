@@ -1,0 +1,102 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>评估控制台 · 智能问答</title><link rel="stylesheet" href="style.css"></head><body>
+<div id="root" style="max-width:1280px;margin:0 auto;padding:20px 24px"></div>
+<script src="config.js"></script><script src="core.js"></script>
+<script>
+const EV = { ds: null, runs: [], detail: {} };
+const TABS = [['ds', '黄金测试集'], ['dims', '评估维度'], ['run', '手动运行'], ['res', '结果'], ['cmp', '优化对比']];
+async function boot() {
+  if (!Auth.tok) { $('#root').innerHTML = '<div class="card">请先在 <a href="index.html">平台首页</a> 以管理员登录。</div>'; return; }
+  const me = await GET('/api/me').catch(() => null);
+  if (!me || me.role !== 'admin') { $('#root').innerHTML = '<div class="card">评估控制台仅管理员可见。</div>'; return; }
+  EV.ds = await GET('/api/eval/dataset'); EV.runs = (await GET('/api/eval/runs')).runs;
+  $('#root').innerHTML = `<div class="row"><h1>评估控制台 · 智能问答（NLQ）</h1><span class="spacer"></span><a href="index.html">← 返回平台</a></div>
+    <p class="sub">评估对象：自然语言 → Athena SQL 智能体。数据：确定性合成数据（库 logaudit_eval，固定"今天"=${EV.ds.today}）。评估只在此页手动触发，不随改动自动执行。</p>
+    <div class="tabs">${TABS.map(([k, l]) => `<a data-t="${k}">${l}</a>`).join('')}</div><div id="body"></div>`;
+  $$('.tabs a').forEach(a => a.onclick = () => show(a.dataset.t)); show(location.hash.slice(1) || 'ds');
+}
+function show(t) { location.hash = t; $$('.tabs a').forEach(a => a.classList.toggle('on', a.dataset.t === t)); ({ ds, dims, run, res, cmp })[t]($('#body')); }
+
+function ds(el) {
+  const c = EV.ds.cases; const by = {}; c.forEach(x => by[x.type] = (by[x.type] || 0) + 1);
+  el.innerHTML = `<div class="card"><div class="small muted" style="margin-bottom:8px">${c.length} 条 · ${Object.entries(by).map(([k, v]) => `${k} ${v}`).join(' · ')}
+    · 回归套件 ${c.filter(x => x.suite === 'regression').length} / 能力套件 ${c.filter(x => x.suite === 'capability').length}</div>` +
+    table([{ key: 'id', label: 'ID' }, { key: 'category', label: '类目' }, { key: 'type', label: '判分类型' }, { key: 'suite', label: '套件' }, { key: 'question', label: '问题' },
+      { key: 'reference_sql', label: 'Ground truth（参考 SQL，评估时在同一数据上执行）' }], c, { render: {
+      question: (v, x) => esc(v) + (x.variant_of ? `<div class="small muted">同义改写自 ${x.variant_of}</div>` : ''),
+      reference_sql: (v, x) => v ? `<pre class="sql">${esc(v)}</pre>` : `<span class="muted small">${{ refuse: '应拒绝，不执行任何 SQL', clarify: '应写明假设或请用户确认（L2 judge 判定）' }[x.type]}</span>` }, cls: 'nw4' }) + '</div>';
+}
+function dims(el) {
+  el.innerHTML = `<div class="card">${table([{ key: 'id', label: '维度' }, { key: 'layer', label: '证据层' }, { key: 'applies', label: '适用判分类型' }, { key: 'desc', label: '定义' }], EV.ds.dimensions)}</div>
+    <div class="card"><h3>通过规则</h3><ul class="small"><li>match：result_match ≥ 0.8</li><li>empty：执行了查询且明确回答"没有/0"</li>
+    <li>refuse：未成功执行任何 SQL，且回答为拒绝</li><li>clarify：L2 assumption ≥ 1 且 faithful ≥ 1</li></ul>
+    <p class="small muted">不做工具调用序列的精确匹配；轨迹指标只看效率与越界尝试。</p></div>
+    <div class="card"><h3>L2 固定评审（${esc(EV.ds.judge_model)}）</h3><pre class="sql">${esc(EV.ds.judge_prompt)}</pre></div>`;
+}
+function run(el) {
+  el.innerHTML = `<div class="card"><h3>发起评估</h3><div class="row"><input id="note" placeholder="本轮说明（如：改了系统提示第 3 条）" size="50">
+      <label>用例 <input id="ids" placeholder="留空=全部，如 A01,H03" size="20"></label><button class="primary" id="go">运行评估</button></div>
+    <p class="small muted">每条用例异步并行执行（Lambda），通常 3~6 分钟完成；成本约为 ${EV.ds.cases.length} 次问答 + ${EV.ds.cases.filter(c => c.type !== 'refuse').length} 次 judge 调用。
+    命令行等价：<code>python3 evals/run_eval.py --note "..."</code></p></div>
+    <div class="card"><h3>运行历史</h3>${runsTable()}</div>`;
+  $('#go').onclick = e => guard(e.target, async () => {
+    if (!confirm('确认运行评估？将调用 Bedrock 产生费用。')) return;
+    const ids = $('#ids').value.split(',').map(s => s.trim()).filter(Boolean);
+    const r = await POST('/api/eval/runs', { note: $('#note').value, case_ids: ids.length ? ids : undefined }); toast(`已启动 ${r.run_id}（${r.total} 条）`);
+    EV.runs = (await GET('/api/eval/runs')).runs; run(el);
+  });
+}
+const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '-';
+function runsTable() {
+  return table([{ key: 'id', label: '运行' }, { key: 'started_at', label: '开始' }, { key: 'note', label: '说明' }, { key: 'prog', label: '进度' }, { key: 'pass', label: '通过率' },
+    { key: 'p50', label: 'P50 延迟' }, { key: 'cost', label: '成本' }], EV.runs, { render: {
+    id: v => `<a href="javascript:void 0" onclick="EV.sel='${v}';show('res')">${v}</a>`, started_at: v => esc(v.replace('T', ' ').slice(0, 16)),
+    prog: (_, r) => `${r.summary.done}/${r.summary.total}`, pass: (_, r) => pct(r.summary.passed, r.summary.done),
+    p50: (_, r) => r.summary.p50_ms ? (r.summary.p50_ms / 1000).toFixed(1) + ' s' : '-', cost: (_, r) => '$' + r.summary.cost_total } , empty: '还没有运行过评估' });
+}
+async function res(el) {
+  if (!EV.runs.length) { el.innerHTML = '<div class="card muted">还没有运行过评估，去"手动运行"发起。</div>'; return; }
+  const rid = EV.sel || EV.runs[0].id;
+  el.innerHTML = `<div class="card row"><label>运行 <select id="rsel">${EV.runs.map(r => `<option ${r.id === rid ? 'selected' : ''}>${r.id}</option>`).join('')}</select></label>
+    <button id="rr">刷新</button><span id="rmeta" class="small muted"></span></div><div id="rbody"><span class="spin"></span></div>`;
+  $('#rsel').onchange = () => { EV.sel = $('#rsel').value; res(el); }; $('#rr').onclick = () => res(el);
+  const d = await GET(`/api/eval/runs/${rid}`); EV.detail[rid] = d; const s = d.summary;
+  $('#rmeta').textContent = `${d.run.note || ''} · 模型 ${d.run.model} · judge ${d.run.judge}`;
+  const kp = [['通过', `${s.passed}/${s.done}`], ['result_match 均值', s.result_match ?? '-'], ['answer_grounded', s.answer_grounded ?? '-'], ['faithful(0-2)', s.faithful ?? '-'],
+    ['P50 / P90', s.p50_ms ? `${(s.p50_ms / 1000).toFixed(1)} / ${(s.p90_ms / 1000).toFixed(1)} s` : '-'], ['工具调用均值', s.tool_calls ?? '-'], ['守卫拒绝均值', s.guard_rejects ?? '-'], ['总成本', '$' + s.cost_total]];
+  const cases = d.cases.sort((a, b) => a.case_id.localeCompare(b.case_id));
+  $('#rbody').innerHTML = `<div class="kpi">${kp.map(([l, v]) => `<div><b>${v}</b><span>${l}</span></div>`).join('')}</div>
+    <div class="card" style="margin-top:16px"><h3>按类目</h3>${table(['类目', '通过/总数'], Object.entries(s.by_category).map(([k, v]) => [k, `${v.passed}/${v.n}`]))}</div>
+    <div class="card"><h3>逐用例</h3>${table([{ key: 'case_id', label: 'ID' }, { key: 'type', label: '类型' }, { key: 'passed', label: '结果' }, { key: 'question', label: '问题' },
+      { key: 'm', label: '指标' }, { key: 'x', label: '' }], cases, { render: {
+      passed: (v, c) => c.error ? badge('错误', 'crit') : v ? badge('通过', 'good') : badge('未通过', 'crit'),
+      m: (_, c) => { const m = c.metrics || {}; return `<span class="small">${['result_match', 'answer_grounded', 'empty_ok', 'refused', 'faithful', 'assumption'].filter(k => m[k] != null).map(k => `${k}=${m[k]}`).join(' ')}
+        <br><span class="muted">${m.latency_ms ? (m.latency_ms / 1000).toFixed(1) + 's' : ''} · ${m.tool_calls ?? ''} 次工具 · 拒绝 ${m.guard_rejects ?? 0} · 错误 ${m.sql_errors ?? 0}</span></span>`; },
+      x: (_, c) => `<button class="sm" onclick="caseDetail('${rid}','${c.case_id}')">明细</button>` } })}</div>`;
+}
+function caseDetail(rid, cid) {
+  const c = EV.detail[rid].cases.find(x => x.case_id === cid); const m = c.metrics || {};
+  modal(`${cid} · ${c.question}`, `${c.error ? `<pre>${esc(c.error)}</pre>` : ''}<h4>最终回答</h4><div class="msg a" style="width:100%">${md(c.answer || '')}</div>
+    ${m.judge_reason ? `<h4>Judge 理由</h4><p>${esc(m.judge_reason)}</p>` : ''}
+    <h4>智能体执行的 SQL</h4>${(c.sql_runs || []).map(r => `<pre class="sql">${esc(r.executed_sql || r.sql)}</pre><div class="small muted">${r.ok ? `${r.result.row_count} 行：${esc(JSON.stringify(r.result.rows.slice(0, 5)))}` : esc(r.error + ' ' + (r.message || ''))}</div>`).join('') || '<span class="muted">无</span>'}
+    ${c.reference ? `<h4>参考结果（ground truth）</h4><div class="small">${esc(JSON.stringify(c.reference))}</div>` : ''}`);
+}
+async function cmp(el) {
+  if (EV.runs.length < 2) { el.innerHTML = '<div class="card muted">至少需要两次运行才能对比。</div>'; return; }
+  const opt = sel => EV.runs.map(r => `<option ${r.id === sel ? 'selected' : ''} value="${r.id}">${r.id} ${esc(r.note || '')}</option>`).join('');
+  el.innerHTML = `<div class="card row"><label>基线 <select id="ca">${opt(EV.runs[1].id)}</select></label><label>对比 <select id="cb">${opt(EV.runs[0].id)}</select></label><button class="primary" id="cg">对比</button></div><div id="cbody"></div>`;
+  $('#cg').onclick = e => guard(e.target, async () => {
+    const [a, b] = await Promise.all([$('#ca').value, $('#cb').value].map(id => EV.detail[id] || GET(`/api/eval/runs/${id}`)));
+    const keys = [['通过率', s => s.done ? s.passed / s.done : null, 1], ['result_match', s => s.result_match, 1], ['answer_grounded', s => s.answer_grounded, 1], ['faithful', s => s.faithful, 1],
+      ['P50 延迟(s)', s => s.p50_ms / 1000, -1], ['工具调用均值', s => s.tool_calls, -1], ['守卫拒绝均值', s => s.guard_rejects, -1], ['SQL 错误均值', s => s.sql_errors, -1], ['总成本($)', s => s.cost_total, -1]];
+    const f = v => v == null || isNaN(v) ? '-' : (+v).toFixed(3);
+    const rows = keys.map(([l, g, dir]) => { const x = g(a.summary), y = g(b.summary); const dlt = (y ?? 0) - (x ?? 0);
+      const good = dir * dlt > 0, bad = dir * dlt < 0; return [l, f(x), f(y), x == null || y == null ? '-' : `${dlt > 0 ? '+' : ''}${dlt.toFixed(3)} ${good ? badge('改善', 'good') : bad ? badge('退化', 'crit') : ''}`]; });
+    const ca = Object.fromEntries(a.cases.map(c => [c.case_id, c])), flips = b.cases.filter(c => ca[c.case_id] && !!ca[c.case_id].passed !== !!c.passed)
+      .map(c => [c.case_id, c.question, ca[c.case_id].passed ? '通过' : '未通过', c.passed ? '通过' : '未通过']);
+    $('#cbody').innerHTML = `<div class="card"><h3>维度变化</h3>${table(['维度', '基线', '对比', 'Δ'], rows, { render: { 3: v => v } })}</div>
+      <div class="card"><h3>结果翻转的用例</h3>${table(['ID', '问题', '基线', '对比'], flips, { empty: '无翻转' })}</div>`;
+  });
+}
+boot();
+</script></body></html>

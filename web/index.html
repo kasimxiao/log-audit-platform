@@ -1,0 +1,41 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>日志审计平台</title><link rel="stylesheet" href="style.css"></head><body>
+<div id="root"></div>
+<script src="config.js"></script><script src="vendor/chart.umd.min.js"></script><script src="core.js"></script>
+<script>
+const PAGES = {}; let ME = null, IS_ADMIN = false;
+const NAV = [['资产与采集', [['hosts', '主机管理'], ['templates', '采集模板'], ['sync', '同步记录']]],
+  ['审计查询', [['hostlogs', '主机日志查询'], ['scenarios', '审计场景'], ['alb', 'ALB 日志分析'], ['cloudtrail', 'CloudTrail 审计'], ['nlq', '智能问答'], ['alerts', '告警中心']]],
+  ['系统管理', [['users', '用户管理'], ['audit', '平台操作审计'], ['settings', '数据源与设置']], true]];
+function loginView(msg = '') {
+  $('#root').innerHTML = `<div class="login"><h2>日志审计平台</h2><p class="sub">AnyCompany · POC</p>
+    <form id="lf"><input id="lu" placeholder="用户名" autocomplete="username"><input id="lp" type="password" placeholder="密码" autocomplete="current-password">
+    <div id="np" hidden><input id="lp2" type="password" placeholder="设置新密码（≥10 位，含小写字母与数字）" autocomplete="new-password"></div>
+    <button class="primary">登录</button><div id="lerr" class="small" style="color:var(--crit);margin-top:8px">${esc(msg)}</div></form></div>`;
+  let ch = null;
+  $('#lf').onsubmit = async e => { e.preventDefault(); $('#lerr').textContent = '';
+    try { if (ch) { await Auth.newPassword(ch.challenge, ch.username, $('#lp2').value); return boot(); }
+      const r = await Auth.login($('#lu').value.trim(), $('#lp').value);
+      if (r.challenge) { ch = r; $('#np').hidden = false; $('#lerr').textContent = '首次登录，请设置新密码'; return; }
+      boot(); } catch (er) { $('#lerr').textContent = er.message; } };
+}
+async function boot() {
+  if (!Auth.tok) return loginView();
+  try { ME = await GET('/api/me'); } catch (e) { Auth.tok = null; return loginView(e.message); }
+  IS_ADMIN = ME.role === 'admin';
+  $('#root').innerHTML = `<div id="app"><nav><div class="logo">日志审计平台<small>Log Audit · POC</small></div>
+    ${NAV.filter(g => !g[2] || IS_ADMIN).map(([g, items]) => `<div class="grp">${g}</div>` + items.map(([k, l]) => `<a href="#${k}" data-k="${k}">${l}</a>`).join('')).join('')}
+    ${IS_ADMIN ? '<div class="grp">评估</div><a href="eval.html" target="_blank">评估控制台 ↗</a>' : ''}
+    <div class="who">${esc(ME.name || ME.username)} · ${IS_ADMIN ? '管理员' : '普通用户'}<br><button class="sm" onclick="Auth.logout()">退出</button></div></nav><main></main></div>`;
+  window.onhashchange = route; route();
+}
+function route() {
+  const k = (location.hash || '#hosts').slice(1); const p = PAGES[k] || PAGES.hosts;
+  if (p.admin && !IS_ADMIN) { location.hash = '#hosts'; return; }
+  $$('nav a').forEach(a => a.classList.toggle('on', a.dataset.k === k));
+  document.title = `${p.title} · 日志审计平台`; const m = $('main'); m.innerHTML = '';
+  guard(null, () => p.render(m));
+}
+</script>
+<script src="pages-hosts.js"></script><script src="pages-query.js"></script><script src="pages-alb.js"></script><script src="pages-admin.js"></script><script src="pages-alerts.js"></script>
+<script>boot();</script></body></html>

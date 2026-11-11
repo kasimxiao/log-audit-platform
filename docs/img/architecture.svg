@@ -1,0 +1,67 @@
+<svg style="background:#fff" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 700" width="1120">
+<defs><style>text{font-family:-apple-system,'PingFang SC','Microsoft YaHei','Noto Sans CJK SC',sans-serif}</style>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#52514e"></path></marker>
+<marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#2a78d6"></path></marker>
+<marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#eb6834"></path></marker>
+<style>.bx{fill:#fff;stroke:#c9c8c2;stroke-width:1.2}.zone{fill:none;stroke:#c9c8c2;stroke-dasharray:5 4}.t{font-size:13px;fill:#0b0b0b}.s{font-size:11px;fill:#52514e}.z{font-size:12px;fill:#8a8984;font-weight:600}
+.l{stroke:#52514e;stroke-width:1.4;fill:none}.lb{stroke:#2a78d6;stroke-width:1.6;fill:none}.lo{stroke:#eb6834;stroke-width:1.6;fill:none}.n{font-size:11px;fill:#2a78d6}.no{font-size:11px;fill:#eb6834}</style>
+</defs>
+<!-- 用户接入 -->
+<rect class="zone" x="10" y="10" width="220" height="330" rx="10"></rect><text class="z" x="22" y="30">用户接入</text>
+<rect class="bx" x="30" y="50" width="180" height="50" rx="8"></rect><text class="t" x="120" y="72" text-anchor="middle">浏览器</text><text class="s" x="120" y="90" text-anchor="middle">管理员 / 普通用户</text>
+<rect class="bx" x="30" y="140" width="180" height="50" rx="8"></rect><text class="t" x="120" y="162" text-anchor="middle">Amazon Cognito</text><text class="s" x="120" y="180" text-anchor="middle">用户池 · admin / user 组</text>
+<rect class="bx" x="30" y="230" width="180" height="50" rx="8"></rect><text class="t" x="120" y="252" text-anchor="middle">Amazon CloudFront</text><text class="s" x="120" y="270" text-anchor="middle">唯一公网入口 · HTTPS</text>
+<path class="l" d="M120,100 V138" marker-end="url(#a)"></path><text class="s" x="126" y="124">登录取 JWT</text>
+<path class="l" d="M70,100 C40,160 40,200 70,228" marker-end="url(#a)"></path>
+<rect class="bx" x="30" y="290" width="85" height="40" rx="6"></rect><text class="s" x="72" y="314" text-anchor="middle">S3 静态前端</text>
+<path class="l" d="M80,280 V288" marker-end="url(#a)"></path>
+
+<!-- 平台服务 -->
+<rect class="zone" x="250" y="10" width="560" height="330" rx="10"></rect><text class="z" x="262" y="30">平台服务（无服务器）</text>
+<rect class="bx" x="270" y="50" width="170" height="50" rx="8"></rect><text class="t" x="355" y="72" text-anchor="middle">API Gateway</text><text class="s" x="355" y="90" text-anchor="middle">HTTP API · JWT 鉴权</text>
+<path class="l" d="M210,255 H240 V75 H268" marker-end="url(#a)"></path><text class="s" x="215" y="200">/api/*</text>
+<rect class="bx" x="470" y="50" width="180" height="50" rx="8"></rect><text class="t" x="560" y="72" text-anchor="middle">Lambda · api</text><text class="s" x="560" y="90" text-anchor="middle">54 个接口 · 角色校验 · 操作留痕</text>
+<path class="l" d="M440,75 H468" marker-end="url(#a)"></path>
+<rect class="bx" x="670" y="50" width="125" height="50" rx="8"></rect><text class="t" x="732" y="72" text-anchor="middle">DynamoDB</text><text class="s" x="732" y="90" text-anchor="middle">配置/记录/审计</text>
+<path class="l" d="M650,75 H668" marker-end="url(#a)"></path>
+<rect class="bx" x="470" y="140" width="180" height="50" rx="8"></rect><text class="t" x="560" y="162" text-anchor="middle">Lambda · worker</text><text class="s" x="560" y="180" text-anchor="middle">智能问答 · 评估 · 告警（异步）</text>
+<path class="l" d="M560,100 V138" marker-end="url(#a)"></path>
+<rect class="bx" x="670" y="140" width="125" height="50" rx="8"></rect><text class="t" x="732" y="162" text-anchor="middle">Bedrock / SNS</text><text class="s" x="732" y="180" text-anchor="middle">问答模型 · 告警通知</text>
+<path class="l" d="M650,165 H668" marker-end="url(#a)"></path>
+<rect class="bx" x="270" y="230" width="170" height="50" rx="8"></rect><text class="t" x="355" y="252" text-anchor="middle">EventBridge Scheduler</text><text class="s" x="355" y="270" text-anchor="middle">每日 02:00（北京时间）</text>
+<rect class="bx" x="470" y="230" width="180" height="50" rx="8"></rect><text class="t" x="560" y="252" text-anchor="middle">Lambda · sync</text><text class="s" x="560" y="270" text-anchor="middle">渲染采集脚本 + 预签名 URL</text>
+<path class="l" d="M440,255 H468" marker-end="url(#a)"></path>
+<rect class="bx" x="670" y="230" width="125" height="50" rx="8"></rect><text class="t" x="732" y="252" text-anchor="middle">Athena + Glue</text><text class="s" x="732" y="270" text-anchor="middle">工作组 logaudit</text>
+<path class="l" d="M600,190 C640,215 660,235 668,245" marker-end="url(#a)"></path>
+<path class="l" d="M640,100 C700,130 720,190 732,228" marker-end="url(#a)"></path><text class="s" x="700" y="130"></text>
+
+<!-- 主机 -->
+<rect class="zone" x="10" y="370" width="420" height="320" rx="10"></rect><text class="z" x="22" y="390">EC2 主机（多区域，200+ 台）</text>
+<rect class="bx" x="30" y="410" width="380" height="70" rx="8"></rect><text class="t" x="220" y="432" text-anchor="middle">AWS Systems Manager（SSM）</text><text class="s" x="220" y="450" text-anchor="middle">Run Command · AWS-RunShellScript（root）</text><text class="s" x="220" y="467" text-anchor="middle">实例角色仅需 AmazonSSMManagedInstanceCore</text>
+<rect class="bx" x="30" y="510" width="180" height="160" rx="8"></rect><text class="t" x="120" y="532" text-anchor="middle">采集脚本（每日）</text>
+<text class="s" x="42" y="556">· inode+偏移增量，轮转补采</text><text class="s" x="42" y="576">· wtmp/btmp 按记录取字节</text><text class="s" x="42" y="596">· lastlog 按 UID 直读</text><text class="s" x="42" y="616">· journalctl（AL2023）</text><text class="s" x="42" y="636">· tar.gz + manifest</text><text class="s" x="42" y="656">· curl PUT 预签名 URL</text>
+<rect class="bx" x="230" y="510" width="180" height="160" rx="8"></rect><text class="t" x="320" y="532" text-anchor="middle">实时查询脚本</text>
+<text class="s" x="242" y="556">· 列目录 / tail / grep</text><text class="s" x="242" y="576">· last / lastlog / journal</text><text class="s" x="242" y="596">· 路径白名单根目录</text><text class="s" x="242" y="616">· 参数 base64，不 eval</text><text class="s" x="242" y="636">· 输出 gzip+base64 回传</text>
+<path class="lo" d="M560,280 C560,330 380,360 330,408" marker-end="url(#ao)"></path><text class="no" x="455" y="352">① SendCommand（同步）</text>
+<path class="lb" d="M520,100 C480,200 300,330 260,408" marker-end="url(#ab)"></path><text class="n" x="292" y="318">实时查询 SendCommand / 取结果</text>
+
+<!-- S3 日志湖 -->
+<rect class="zone" x="450" y="370" width="660" height="320" rx="10"></rect><text class="z" x="462" y="390">S3 日志存储与入库</text>
+<rect class="bx" x="470" y="410" width="300" height="260" rx="8"></rect><text class="t" x="620" y="432" text-anchor="middle">S3 日志桶（平台）</text>
+<text class="s" x="485" y="458">staging/        主机上传包（入库后删除）</text>
+<text class="s" x="485" y="480">hostlogs/dt/实例/类型 Parquet ★</text>
+<text class="s" x="485" y="502">raw/dt=…/       二进制原文件（留存）</text>
+<text class="s" x="485" y="524">manifests/      每次同步清单</text>
+<text class="s" x="485" y="546">athena-results/ 查询结果（30 天）</text>
+<text class="s" x="485" y="568">synthetic/ eval/ 演示与评估数据</text>
+<rect class="bx" x="790" y="410" width="150" height="70" rx="8"></rect><text class="t" x="865" y="436" text-anchor="middle">Lambda · extractor</text><text class="s" x="865" y="454" text-anchor="middle">解码 · 时间 · 字段解析</text><text class="s" x="865" y="470" text-anchor="middle">写 Parquet · 登记分区</text>
+<rect class="bx" x="790" y="510" width="150" height="70" rx="8"></rect><text class="t" x="865" y="536" text-anchor="middle">ALB 日志桶 ×N</text><text class="s" x="865" y="554" text-anchor="middle">桶+前缀可配置</text><text class="s" x="865" y="570" text-anchor="middle">一源一张 Athena 表</text>
+<rect class="bx" x="790" y="600" width="150" height="70" rx="8"></rect><text class="t" x="865" y="626" text-anchor="middle">CloudTrail 桶</text><text class="s" x="865" y="644" text-anchor="middle">现有多区域 trail</text><text class="s" x="865" y="660" text-anchor="middle">平台只读</text>
+<rect class="bx" x="960" y="410" width="135" height="260" rx="8"></rect><text class="t" x="1027" y="432" text-anchor="middle">Glue 数据目录</text>
+<text class="s" x="972" y="462">库 logaudit</text><text class="s" x="972" y="486">· hostlogs + 7 个视图</text><text class="s" x="972" y="506">· alb_&lt;源 ID&gt;</text><text class="s" x="972" y="526">· cloudtrail</text><text class="s" x="972" y="560">库 logaudit_eval</text><text class="s" x="972" y="582">· 评估用合成数据</text><text class="s" x="972" y="616">hostlogs：登记分区</text><text class="s" x="972" y="636">ALB/CT：分区投影</text>
+<path class="lo" d="M120,670 C120,700 460,700 520,672" marker-end="url(#ao)"></path><text class="no" x="250" y="690">② curl PUT → staging/</text>
+<path class="lo" d="M770,450 H788" marker-end="url(#ao)"></path><text class="no" x="740" y="404">③ S3 事件</text>
+<path class="lo" d="M790,465 H772" marker-end="url(#ao)"></path>
+<path class="l" d="M1027,410 V300 H797" marker-end="url(#a)"></path><text class="s" x="905" y="296">表元数据</text>
+<path class="l" d="M770,500 C820,380 760,330 760,282" marker-end="url(#a)" stroke-dasharray="4 3"></path><text class="s" x="790" y="352">Athena 扫描 S3</text>
+</svg>

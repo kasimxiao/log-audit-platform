@@ -1,0 +1,4 @@
+{ "name": "log-audit-infra", "version": "0.1.0", "private": true,
+  "scripts": { "build": "tsc", "cdk": "cdk" },
+  "devDependencies": { "@types/node": "^22", "typescript": "~5.6.0", "ts-node": "^10.9.2", "aws-cdk": "^2.1030.0" },
+  "dependencies": { "aws-cdk-lib": "^2.220.0", "constructs": "^10.4.2" } }
